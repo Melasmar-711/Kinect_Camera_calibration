@@ -10,5 +10,5 @@ to make it suitable for a kinect camera.
 2) install the requirments using `pip install -r requirments.txt`
 3) run the rgb_collect.py 
 4) run the save_ir_images.py
-5) check the path passed to the functions in the calib.py
+5) change the path in the .yaml in case you changed any thing about them
 6) run the calib.py
