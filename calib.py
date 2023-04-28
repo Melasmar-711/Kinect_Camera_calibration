@@ -48,70 +48,6 @@ def parse_calibration_settings_file(filename):
 
 
 #Open camera stream and save frames
-def save_frames_single_camera(camera_name):
-
-    #create frames directory
-    if not os.path.exists('frames'):
-        os.mkdir('frames')
-
-    #get settings
-    camera_device_id = calibration_settings[camera_name]
-    width = calibration_settings['frame_width']
-    height = calibration_settings['frame_height']
-    number_to_save = calibration_settings['mono_calibration_frames']
-    view_resize = calibration_settings['view_resize']
-    cooldown_time = calibration_settings['cooldown']
-
-    #open video stream and change resolution.
-    #Note: if unsupported resolution is used, this does NOT raise an error.
-    cap = cv.VideoCapture(camera_device_id)
-    cap.set(3, width)
-    cap.set(4, height)
-    
-    cooldown = cooldown_time
-    start = False
-    saved_count = 0
-
-    while True:
-    
-        ret, frame = cap.read()
-        if ret == False:
-            #if no video data is received, can't calibrate the camera, so exit.
-            print("No video data received from camera. Exiting...")
-            quit()
-
-        frame_small = cv.resize(frame, None, fx = 1/view_resize, fy=1/view_resize)
-
-        if not start:
-            cv.putText(frame_small, "Press SPACEBAR to start collection frames", (50,50), cv.FONT_HERSHEY_COMPLEX, 1, (0,0,255), 1)
-        
-        if start:
-            cooldown -= 1
-            cv.putText(frame_small, "Cooldown: " + str(cooldown), (50,50), cv.FONT_HERSHEY_COMPLEX, 1, (0,255,0), 1)
-            cv.putText(frame_small, "Num frames: " + str(saved_count), (50,100), cv.FONT_HERSHEY_COMPLEX, 1, (0,255,0), 1)
-            
-            #save the frame when cooldown reaches 0.
-            if cooldown <= 0:
-                savename = os.path.join('frames', camera_name + '_' + str(saved_count) + '.png')
-                cv.imwrite(savename, frame)
-                saved_count += 1
-                cooldown = cooldown_time
-
-        cv.imshow('frame_small', frame_small)
-        k = cv.waitKey(1)
-        
-        if k == 27:
-            #if ESC is pressed at any time, the program will exit.
-            quit()
-
-        if k == 32:
-            #Press spacebar to start data collection
-            start = True
-
-        #break out of the loop when enough number of frames have been saved
-        if saved_count == number_to_save: break
-
-    cv.destroyAllWindows()
 
 
 #Calibrate single camera to obtain camera intrinsic parameters from saved frames.
@@ -124,7 +60,9 @@ def calibrate_camera_for_intrinsic_parameters(images_prefix):
     images=[]
     for image in images_names:
         #print(image)
-        images.append(cv.imread("calib intrinsic/rgb/rgb_images/"+image))
+        images.append(cv.imread(image_prefix+image))
+        
+        
     #images = [cv.imread(imname, 1) for imname in images_names]
     #print(images[0])
     #cv.imshow("as",images[0])
@@ -196,8 +134,13 @@ def calibrate_ircamera_for_intrinsic_parameters(images_prefix):
     # read all frames
     images = []
     for image in images_names:
+    
+    
         #print(image)
-        images.append(cv.imread("calib intrinsic/depth/" + image))
+        #images.append(cv.imread("calib intrinsic/depth/" + image))
+        
+        
+        images.append(cv.imread(images_prefix+image)
     # images = [cv.imread(imname, 1) for imname in images_names]
     #print(images[0])
     #cv.imshow("as", images[0])
@@ -286,83 +229,6 @@ def save_camera_intrinsics(camera_matrix, distortion_coefs, camera_name):
 
 
 #open both cameras and take calibration frames
-def save_frames_two_cams(camera0_name, camera1_name):
-
-    #create frames directory
-    if not os.path.exists('frames_pair'):
-        os.mkdir('frames_pair')
-
-    #settings for taking data
-    view_resize = calibration_settings['view_resize']
-    cooldown_time = calibration_settings['cooldown']    
-    number_to_save = calibration_settings['stereo_calibration_frames']
-
-    #open the video streams
-    cap0 = cv.VideoCapture(calibration_settings[camera0_name])
-    cap1 = cv.VideoCapture(calibration_settings[camera1_name])
-
-    #set camera resolutions
-    width = calibration_settings['frame_width']
-    height = calibration_settings['frame_height']
-    cap0.set(3, width)
-    cap0.set(4, height)
-    cap1.set(3, width)
-    cap1.set(4, height)
-
-    cooldown = cooldown_time
-    start = False
-    saved_count = 0
-    while True:
-
-        ret0, frame0 = cap0.read()
-        ret1, frame1 = cap1.read()
-
-        if not ret0 or not ret1:
-            print('Cameras not returning video data. Exiting...')
-            quit()
-
-        frame0_small = cv.resize(frame0, None, fx=1./view_resize, fy=1./view_resize)
-        frame1_small = cv.resize(frame1, None, fx=1./view_resize, fy=1./view_resize)
-
-        if not start:
-            cv.putText(frame0_small, "Make sure both cameras can see the calibration pattern well", (50,50), cv.FONT_HERSHEY_COMPLEX, 1, (0,0,255), 1)
-            cv.putText(frame0_small, "Press SPACEBAR to start collection frames", (50,100), cv.FONT_HERSHEY_COMPLEX, 1, (0,0,255), 1)
-        
-        if start:
-            cooldown -= 1
-            cv.putText(frame0_small, "Cooldown: " + str(cooldown), (50,50), cv.FONT_HERSHEY_COMPLEX, 1, (0,255,0), 1)
-            cv.putText(frame0_small, "Num frames: " + str(saved_count), (50,100), cv.FONT_HERSHEY_COMPLEX, 1, (0,255,0), 1)
-            
-            cv.putText(frame1_small, "Cooldown: " + str(cooldown), (50,50), cv.FONT_HERSHEY_COMPLEX, 1, (0,255,0), 1)
-            cv.putText(frame1_small, "Num frames: " + str(saved_count), (50,100), cv.FONT_HERSHEY_COMPLEX, 1, (0,255,0), 1)
-
-            #save the frame when cooldown reaches 0.
-            if cooldown <= 0:
-                savename = os.path.join('frames_pair', camera0_name + '_' + str(saved_count) + '.png')
-                cv.imwrite(savename, frame0)
-
-                savename = os.path.join('frames_pair', camera1_name + '_' + str(saved_count) + '.png')
-                cv.imwrite(savename, frame1)
-
-                saved_count += 1
-                cooldown = cooldown_time
-
-        cv.imshow('frame0_small', frame0_small)
-        cv.imshow('frame1_small', frame1_small)
-        k = cv.waitKey(1)
-        
-        if k == 27:
-            #if ESC is pressed at any time, the program will exit.
-            quit()
-
-        if k == 32:
-            #Press spacebar to start data collection
-            start = True
-
-        #break out of the loop when enough number of frames have been saved
-        if saved_count == number_to_save: break
-
-    cv.destroyAllWindows()
 
 
 #open paired calibration frames and stereo calibrate for cam0 to cam1 coorindate transformations
@@ -667,14 +533,18 @@ if __name__ == '__main__':
 
     """Step2. Obtain camera intrinsic matrices and save them"""
     #camera0 intrinsics
-    images_prefix ="calib intrinsic/rgb/rgb_images"
+    images_prefix = calibration_settings['rgb_path']
     cmtx0, dist0 = calibrate_camera_for_intrinsic_parameters(images_prefix)
     print(cmtx0)
     save_camera_intrinsics(cmtx0, dist0, 'rgb') #this will write cmtx and dist to disk
+    
+    
     #camera1 intrinsics
-    images_prefix = "calib intrinsic/depth"
-    cmtx1, dist1 = calibrate_ircamera_for_intrinsic_parameters(images_prefix)
+    images_prefix_1 = calibration_settings['ir_path']
+    cmtx1, dist1 = calibrate_ircamera_for_intrinsic_parameters(images_prefix_1)
     save_camera_intrinsics(cmtx1, dist1, 'ir_camera') #this will write cmtx and dist to disk
+
+
 
 
     """Step3. Save calibration frames for both cameras simultaneously"""
@@ -697,6 +567,7 @@ if __name__ == '__main__':
 
 
 ##################################################################
+####################ignore these lines############################33
     #check your calibration makes sense
     # cmtx1=np.array([[587.1011721395158, 0.0 ,313.6058629990581],
     #                 [0.0 ,586.7697143207837 ,241.91626971482347],
@@ -713,12 +584,16 @@ if __name__ == '__main__':
     #               ,[0 ,1 ,0 ]
     #               ,[0 ,0, 1 ]])
     # T1=np.array([[3],[-25 ],[-0.6055406428076253 ]])
-    #
+    ###########################################################
+    
+    
+    
+    
     P1 = get_projection_matrix(cmtx1, R1, T1)
     P0 = get_projection_matrix(cmtx0, R0, T0)
     #
-    print(P1)
-    print(P0)
+    #print(P1)
+    #print(P0)
 
 
 ######################################################
