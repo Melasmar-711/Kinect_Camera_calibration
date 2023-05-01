@@ -10,4 +10,4 @@ checkerboard_rows: 6
 checkerboard_columns: 9
 cooldown: 100
 rgb_path: "calib intrinsic/rgb/rgb_images"
-ir_path: "calib intrinsic/depth"
+ir_path: "calib intrinsic/ir"

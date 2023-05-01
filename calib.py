@@ -47,7 +47,6 @@ def parse_calibration_settings_file(filename):
         quit()
 
 
-#Open camera stream and save frames
 
 
 #Calibrate single camera to obtain camera intrinsic parameters from saved frames.
@@ -60,9 +59,8 @@ def calibrate_camera_for_intrinsic_parameters(images_prefix):
     images=[]
     for image in images_names:
         #print(image)
-        images.append(cv.imread(image_prefix+image))
-        
-        
+        #images.append(cv.imread("calib intrinsic/rgb/"+image))
+        images.append(cv.imread(images_prefix+"/"+image))        
     #images = [cv.imread(imname, 1) for imname in images_names]
     #print(images[0])
     #cv.imshow("as",images[0])
@@ -97,7 +95,7 @@ def calibrate_camera_for_intrinsic_parameters(images_prefix):
         ret, corners = cv.findChessboardCorners(gray, (rows, columns), None)
 
         if ret == True:
-     
+
             #Convolution size used to improve corner detection. Don't make this too large.
             conv_size = (11, 11)
 
@@ -111,7 +109,7 @@ def calibrate_camera_for_intrinsic_parameters(images_prefix):
 
             if k & 0xFF == ord('s'):
                 print('skipping')
-                os.remove('calib intrinsic/rgb/rgb_images/'+images_names[i])
+                os.remove('calib intrinsic/rgb/'+images_names[i])
                 continue
 
             objpoints.append(objp)
@@ -134,13 +132,9 @@ def calibrate_ircamera_for_intrinsic_parameters(images_prefix):
     # read all frames
     images = []
     for image in images_names:
-    
-    
         #print(image)
         #images.append(cv.imread("calib intrinsic/depth/" + image))
-        
-        
-        images.append(cv.imread(images_prefix+image)
+        images.append(cv.imread(images_prefix+"/"+image))         
     # images = [cv.imread(imname, 1) for imname in images_names]
     #print(images[0])
     #cv.imshow("as", images[0])
@@ -168,7 +162,9 @@ def calibrate_ircamera_for_intrinsic_parameters(images_prefix):
     objpoints = []  # 3d point in real world space
 
     for i, frame in enumerate(images):
+    
         gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+        print(frame)
 
         # find the checkerboard
         ret, corners = cv.findChessboardCorners(gray, (rows, columns), None)
@@ -191,7 +187,7 @@ def calibrate_ircamera_for_intrinsic_parameters(images_prefix):
                 print('skipping')
                 print(frame)
 
-                os.remove('calib intrinsic/depth/'+images_names[i])
+                os.remove(images_prefix+'/'+images_names[i])
                 continue
 
             objpoints.append(objp)
@@ -228,19 +224,17 @@ def save_camera_intrinsics(camera_matrix, distortion_coefs, camera_name):
     outf.write('\n')
 
 
-#open both cameras and take calibration frames
-
 
 #open paired calibration frames and stereo calibrate for cam0 to cam1 coorindate transformations
 def stereo_calibrate(mtx0, dist0, mtx1, dist1, frames_prefix_c0, frames_prefix_c1):
     #read the synched frames
     c0_images_names = sorted(os.listdir("frames_pair/rgb"))
     c1_images_names = sorted(os.listdir("frames_pair/ir"))
-    #print(c0_images_names)
+    print(c0_images_names)
     #open images
     c0_images = [cv.imread("frames_pair/rgb/"+imname, 1) for imname in c0_images_names]
     c1_images = [cv.imread("frames_pair/ir/"+imname, 1) for imname in c1_images_names]
-    #print((c0_images[0]))
+    print((c0_images[0]))
     #change this if stereo calibration not good.
     criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 100, 0.001)
                        
@@ -290,9 +284,6 @@ def stereo_calibrate(mtx0, dist0, mtx1, dist1, frames_prefix_c0, frames_prefix_c
 
             if k & 0xFF == ord('s'):
                 print('skipping')
-                #print(frame0)
-                #os.remove('frames_pair/rgb/'+frame0)
-                #os.remove('frames_pair/ir/'+frame1)
                 continue
 
             objpoints.append(objp)
@@ -337,10 +328,10 @@ def check_calibration(camera0_name, camera0_data, camera1_name, camera1_data, _z
     P1 = get_projection_matrix(cmtx1, R1, T1)
     print(P1)
     #define coordinate axes in 3D space. These are just the usual coorindate vectors
-    coordinate_points = np.array([[0.,0.,0.],
-                                  [1.,0.,0.],
-                                  [0.,1.,0.],
-                                  [0.,0.,1.]])
+    coordinate_points = np.array([[-5.5,2.,0.],
+                                  [-5.5,2.,0.],
+                                  [-5.5,2.,0.],
+                                  [-5.5,2.,0.]])
     z_shift = np.array([-1.,-1.8,_zshift]).reshape((1, 3))
     #increase the size of the coorindate axes and shift in the z direction
     draw_axes_points = 5 * coordinate_points + z_shift
@@ -381,8 +372,8 @@ def check_calibration(camera0_name, camera0_data, camera1_name, camera1_data, _z
     c0_images_names = sorted(os.listdir("frames_pair/rgb"))
     c1_images_names = sorted(os.listdir("frames_pair/ir"))
     while True:
-        frame0=cv.imread("frames_pair/rgb/"+c0_images_names[1])
-        frame1=cv.imread("frames_pair/ir/"+c1_images_names[1])
+        frame0=cv.imread("frames_pair/rgb/"+c0_images_names[2])
+        frame1=cv.imread("frames_pair/ir/"+c1_images_names[2])
         i=i+1
         #ret0, frame0 = cap0.read()
         #ret1, frame1 = cap1.read()
@@ -529,29 +520,30 @@ if __name__ == '__main__':
 
 
 
+    #
+    """Step1. Save calibration frames for single cameras"""
+    #save_frames_single_camera('camera0') #save frames for camera0
+    #save_frames_single_camera('camera1') #save frames for camera1
 
 
     """Step2. Obtain camera intrinsic matrices and save them"""
     #camera0 intrinsics
-    images_prefix = calibration_settings['rgb_path']
+    images_prefix =calibration_settings["rgb_path"]
     cmtx0, dist0 = calibrate_camera_for_intrinsic_parameters(images_prefix)
     print(cmtx0)
     save_camera_intrinsics(cmtx0, dist0, 'rgb') #this will write cmtx and dist to disk
-    
-    
     #camera1 intrinsics
-    images_prefix_1 = calibration_settings['ir_path']
-    cmtx1, dist1 = calibrate_ircamera_for_intrinsic_parameters(images_prefix_1)
+    images_prefix1 =calibration_settings["ir_path"]
+    cmtx1, dist1 = calibrate_ircamera_for_intrinsic_parameters(images_prefix1)
     save_camera_intrinsics(cmtx1, dist1, 'ir_camera') #this will write cmtx and dist to disk
-
-
 
 
     """Step3. Save calibration frames for both cameras simultaneously"""
     #save_frames_two_cams('camera0', 'camera1') #save simultaneous frames
 
     """Step4. Use paired calibration pattern frames to obtain camera0 to camera1 rotation and translation"""
-
+    #frames_prefix_c0 = os.path.join('frames_pair', 'camera0*')
+    #frames_prefix_c1 = os.path.join('frames_pair', 'camera1*')
     R, T = stereo_calibrate(cmtx0, dist0, cmtx1, dist1, "frames_prefix_c0", "   ")
 
 
@@ -566,43 +558,12 @@ if __name__ == '__main__':
 
 
 
-##################################################################
-####################ignore these lines############################33
-    #check your calibration makes sense
-    # cmtx1=np.array([[587.1011721395158, 0.0 ,313.6058629990581],
-    #                 [0.0 ,586.7697143207837 ,241.91626971482347],
-    #                 [0.0 ,           0.0    , 1.0 ]])
-    #
-    #
-    # cmtx0=np.array([[523.146399769754 ,0.0 ,319.00015639828433 ],[0.0 ,522.2858635958223 ,260.4288287368911 ],[0.0 ,0.0 ,1.0 ]])
-    # dist1=np.array([[-0.1366995  , 0.65369696 , 0.00120725 , 0.0024356 , -1.01327073]])
-    # dist0=np.array([[ 0.2464312 , -0.64879141, -0.002438   , 0.004241   , 0.58810234]])
-    #
-    # R0=np.array([[1.0,0.0,0.0],[0.0,1.0,0.0],[0.0,0.0,1.0]])
-    # T0=np.array([[0.0],[0.0],[0.0]])
-    # R1= np.array([[1, 0, 0 ]
-    #               ,[0 ,1 ,0 ]
-    #               ,[0 ,0, 1 ]])
-    # T1=np.array([[3],[-25 ],[-0.6055406428076253 ]])
-    ###########################################################
-    
-    
-    
-    
-    P1 = get_projection_matrix(cmtx1, R1, T1)
-    P0 = get_projection_matrix(cmtx0, R0, T0)
-    #
-    #print(P1)
-    #print(P0)
-
-
-######################################################
 
 
 
-    #camera0_data = [cmtx0, dist0, R0, T0]
-    #camera1_data = [cmtx1, dist1, R1, T1]
-    #check_calibration('camera0', camera0_data, 'camera1', camera1_data, _zshift = 60.)
+    camera0_data = [cmtx0, dist0, R0, T0]
+    camera1_data = [cmtx1, dist1, R1, T1]
+    check_calibration('camera0', camera0_data, 'camera1', camera1_data, _zshift = 60.)
 
 
     """Optional. Define a different origin point and save the calibration data"""
